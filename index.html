@@ -2,40 +2,555 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>massart.org</title>
+    <title>massart.org - Personal Website</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A personal space for experiments in art and code since 1977">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" href="favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <style>
+      :root {
+          --primary-color: #00ff00;
+          --secondary-color: #ff0000;
+          --text-color: #fff;
+          --border-color: #333;
+      }
+
       html, body {
           margin: 0;
           padding: 0;
-          height: 100%;
-          color: #fff;
-          background: #000;
-          font-family: Arial, sans-serif;
+          min-height: calc(100vh * 20); /* Make body height proportional to number of texts */
+          color: var(--text-color);
+          font-family: "Comic Sans MS", "Comic Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          line-height: 1.5;
+          position: relative;
+          overflow-x: hidden;
       }
-      /* Removed animated background */
+
+      #background-canvas {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+      }
+
       .content {
           text-align: center;
-          padding: 40px;
-          position: relative;
-          z-index: 1;
+          padding: 2rem;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 2;
+          width: 100%;
+          max-width: 800px;
+          backdrop-filter: blur(2px);
       }
+
       h1 {
           margin: 0.5em 0 0;
-          font-size: 3em;
+          font-size: clamp(2rem, 5vw, 3rem);
+          color: var(--secondary-color);
+          text-shadow: 2px 2px 0 #000;
       }
+
       h2 {
           margin: 0;
           font-weight: normal;
-          opacity: 0.8;
+          color: var(--primary-color);
+          font-size: clamp(1.2rem, 3vw, 1.5rem);
+      }
+
+      .text-container {
+          position: relative;
+          min-height: 3em;
+      }
+
+      /* Scroll indicator styles - commented out but preserved
+      .progress-bar {
+          width: 100%;
+          height: 4px;
+          background: rgba(255, 255, 255, 0.2);
+          margin-bottom: 1rem;
+          position: relative;
+      }
+
+      .progress-bar-fill {
+          position: absolute;
+          height: 100%;
+          background: var(--primary-color);
+          transition: width 0.1s linear;
+      }
+
+      .progress-text {
+          font-size: 0.8rem;
+          color: #666;
+          margin-top: 0.5rem;
+          text-align: left;
+      }
+      */
+
+      .text {
+          font-size: clamp(1rem, 2vw, 1.2rem);
+          line-height: 1.6;
+          color: #ccc;
+          max-width: 65ch;
+          margin: 1rem auto;
+      }
+
+      .links {
+          margin: 1.5rem 0;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 1rem;
+      }
+
+      .links a {
+          color: var(--primary-color);
+          text-decoration: underline;
+          padding: 0.5rem;
+          border-radius: 4px;
+          transition: background-color 0.2s;
+          background: rgba(0, 0, 0, 0.4);
+      }
+
+      .links a:hover,
+      .links a:focus {
+          color: var(--secondary-color);
+          background-color: rgba(255, 255, 255, 0.1);
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+      }
+
+      .links a:focus {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+          .marquee-text {
+              animation: none;
+          }
+      }
+
+      @media (max-width: 600px) {
+          .content {
+              padding: 1rem;
+          }
       }
     </style>
 </head>
 <body>
-    <div class="content">
-        <h1>massart.org</h1>
-        <h2>Since 1977</h2>
-        <p>A small space for experiments in art and code. Nothing fancy, just bits of my work and thoughts all in one place.</p>
-    </div>
+    <div id="background-canvas"></div>
+    <header>
+        <div class="content" role="main">
+            <h1>massart.org</h1>
+            <h2>Since 1977</h2>
+            <div class="text-container">
+                <!-- Scroll indicator elements - commented out but preserved
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text"></div>
+                -->
+                <p class="text" id="transition-text">A small space for experiments in art and code. Nothing fancy, just bits of my work and thoughts all in one place.</p>
+            </div>
+        </div>
+    </header>
+
+    <script>
+        // Background animation
+        const sketch = (p) => {
+            let bubbles = [];
+            const maxBubbles = 50;
+            let time = 0;
+            let mouseX = 0;
+            let mouseY = 0;
+            let prevMouseX = 0;
+            let prevMouseY = 0;
+            let spawnRadius = 100;
+            let isMouseOver = false;
+            let isMouseMoving = false;
+            
+            class Bubble {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.size = p.random(20, 100);
+                    this.targetSize = this.size;
+                    this.growthSpeed = p.random(0.2, 0.5);
+                    this.hue = p.random(360);
+                    this.hueSpeed = p.random(-0.5, 0.5);
+                    this.opacity = p.random(0.1, 0.3);
+                    this.velocity = p.createVector(
+                        p.random(-0.5, 0.5),
+                        p.random(-0.5, 0.5)
+                    );
+                    this.acceleration = p.createVector(0, 0);
+                    this.maxSpeed = 2;
+                    this.phase = p.random(p.TWO_PI);
+                    this.lifetime = p.random(300, 600);
+                    this.age = 0;
+                }
+                
+                update() {
+                    this.age++;
+                    
+                    // Update position
+                    this.velocity.add(this.acceleration);
+                    this.velocity.limit(this.maxSpeed);
+                    this.x += this.velocity.x;
+                    this.y += this.velocity.y;
+                    
+                    // Bounce off edges
+                    if (this.x < 0 || this.x > p.width) this.velocity.x *= -1;
+                    if (this.y < 0 || this.y > p.height) this.velocity.y *= -1;
+                    
+                    // Update size
+                    this.size += (this.targetSize - this.size) * 0.05;
+                    
+                    // Randomly change target size
+                    if (p.frameCount % 60 === 0) {
+                        this.targetSize = p.random(20, 150);
+                    }
+                    
+                    // Update color
+                    this.hue = (this.hue + this.hueSpeed) % 360;
+                    
+                    // Add some floating motion
+                    this.acceleration = p.createVector(
+                        p.sin(time * 0.001 + this.phase) * 0.1,
+                        p.cos(time * 0.001 + this.phase) * 0.1
+                    );
+                    
+                    // Check for collisions with other bubbles
+                    bubbles.forEach(other => {
+                        if (other !== this) {
+                            let d = p.dist(this.x, this.y, other.x, other.y);
+                            let minDist = (this.size + other.size) * 0.5;
+                            
+                            if (d < minDist) {
+                                // Push away from each other
+                                let angle = p.atan2(this.y - other.y, this.x - other.x);
+                                let force = (minDist - d) * 0.1;
+                                this.velocity.x += p.cos(angle) * force;
+                                this.velocity.y += p.sin(angle) * force;
+                            }
+                        }
+                    });
+                }
+                
+                draw() {
+                    // Calculate fade out based on remaining lifetime
+                    const fadeOut = this.age > this.lifetime * 0.7 ? 
+                        1 - (this.age - this.lifetime * 0.7) / (this.lifetime * 0.3) : 1;
+                    
+                    p.push();
+                    p.translate(this.x, this.y);
+                    
+                    // Draw main bubble
+                    p.noStroke();
+                    p.fill(this.hue, 80, 100, this.opacity * fadeOut);
+                    p.circle(0, 0, this.size);
+                    
+                    // Draw highlight
+                    p.fill(255, 255, 255, this.opacity * 0.3 * fadeOut);
+                    p.circle(-this.size * 0.2, -this.size * 0.2, this.size * 0.3);
+                    
+                    p.pop();
+                }
+                
+                isDead() {
+                    return this.age >= this.lifetime;
+                }
+            }
+
+            p.setup = () => {
+                const canvas = p.createCanvas(p.windowWidth, p.windowHeight);
+                canvas.parent('background-canvas');
+                p.colorMode(p.HSB, 360, 100, 100, 1);
+            };
+
+            p.draw = () => {
+                p.background(0, 0, 0, 0.1);
+                
+                // Update and draw bubbles
+                bubbles.forEach(bubble => {
+                    bubble.update();
+                    bubble.draw();
+                });
+                
+                // Remove dead bubbles
+                bubbles = bubbles.filter(bubble => !bubble.isDead());
+                
+                // Create new bubbles
+                if (bubbles.length < maxBubbles) {
+                    if (isMouseMoving) {
+                        // Create bubble around mouse position
+                        const angle = p.random(p.TWO_PI);
+                        const distance = p.random(spawnRadius);
+                        const x = mouseX + p.cos(angle) * distance;
+                        const y = mouseY + p.sin(angle) * distance;
+                        bubbles.push(new Bubble(x, y));
+                    } else {
+                        // Create bubble in random position when mouse is not moving
+                        bubbles.push(new Bubble(
+                            p.random(p.width),
+                            p.random(p.height)
+                        ));
+                    }
+                }
+                
+                time++;
+            };
+
+            p.mouseMoved = () => {
+                // Check if mouse has actually moved
+                if (p.mouseX !== prevMouseX || p.mouseY !== prevMouseY) {
+                    isMouseMoving = true;
+                    mouseX = p.mouseX;
+                    mouseY = p.mouseY;
+                    prevMouseX = p.mouseX;
+                    prevMouseY = p.mouseY;
+                } else {
+                    isMouseMoving = false;
+                }
+            };
+
+            p.mouseEntered = () => {
+                isMouseOver = true;
+            };
+
+            p.mouseExited = () => {
+                isMouseOver = false;
+                isMouseMoving = false;
+            };
+
+            p.windowResized = () => {
+                p.resizeCanvas(p.windowWidth, p.windowHeight);
+            };
+        };
+
+        new p5(sketch);
+
+        // Text transition effect
+        const texts = [
+            "A small space for experiments in art and code. Nothing fancy, just bits of my work and thoughts all in one place.",
+            "Imagination, fantasy, dream and code.",
+            "In the dance of electrons and the whisper of leaves, we find our place in nature's grand design.",
+            "Curiosity is our compass, leading us through the maze of knowledge and wonder.",
+            "Art is the language of the soul, code is the poetry of logic, together they create new worlds.",
+            "In the quiet spaces between thoughts, we discover the beauty of existence.",
+            "Nature's patterns echo in our minds, from the spiral of galaxies to the rhythm of our hearts.",
+            "Love is the algorithm that makes us human, connecting us across the digital and physical realms.",
+            "The future is not written in stone, but in the choices we make today.",
+            "In the garden of ideas, diversity blooms and wisdom grows.",
+            "Cryptography is the art of secrets, revealing the beauty of mathematics in everyday life.",
+            "The universe speaks in patterns, and we are its curious listeners.",
+            "Technology should serve life, not the other way around.",
+            "In the intersection of art and science, we find the poetry of reality.",
+            "Every line of code is a brushstroke in the canvas of possibility.",
+            "The best solutions come from understanding, not from force.",
+            "Nature's wisdom is written in the language of mathematics.",
+            "In the silence between words, we find the space to think and grow.",
+            "The digital and natural worlds are not separate, but different expressions of the same reality.",
+            "Knowledge is a garden that grows through sharing and collaboration."
+        ];
+        const transitionText = document.getElementById('transition-text');
+        let lastScrollY = 0;
+        let currentTextIndex = 0;
+        let currentIndex = 0;
+        let lastChangeY = 0;
+
+        // Color palette for texts
+        const colors = [
+            '#00ff00', // Original green
+            '#ff0000', // Original red
+            '#00ffff', // Cyan
+            '#ff00ff', // Magenta
+            '#ffff00', // Yellow
+            '#ff8800', // Orange
+            '#88ff00', // Lime
+            '#00ff88', // Mint
+            '#0088ff', // Blue
+            '#8800ff', // Purple
+            '#ff0088', // Pink
+            '#88ff88', // Light green
+            '#ff8888', // Light red
+            '#8888ff', // Light blue
+            '#ff88ff', // Light magenta
+            '#ffff88', // Light yellow
+            '#88ffff', // Light cyan
+            '#ffaa00', // Amber
+            '#00ffaa', // Turquoise
+            '#aa00ff'  // Violet
+        ];
+
+        function updateText() {
+            const currentText = texts[currentTextIndex];
+            const nextText = texts[(currentTextIndex + 1) % texts.length];
+            const chars1 = currentText.split('');
+            const chars2 = nextText.split('');
+            const result = [...chars1];
+            
+            // Create a span for each character to handle individual colors
+            let htmlResult = '';
+            
+            // Change letters up to currentIndex in the random order
+            for (let i = 0; i < chars1.length; i++) {
+                const pos = i;
+                const isChanged = indicesToChange.indexOf(pos) < currentIndex;
+                
+                if (isChanged && pos < chars2.length) {
+                    // This character has been changed - use next text's color
+                    htmlResult += `<span style="color: ${colors[(currentTextIndex + 1) % colors.length]}">${chars2[pos]}</span>`;
+                } else {
+                    // This character hasn't been changed yet - use current text's color
+                    htmlResult += `<span style="color: ${colors[currentTextIndex]}">${chars1[pos]}</span>`;
+                }
+            }
+            
+            return htmlResult;
+        }
+
+        function handleScroll() {
+            const scrollY = window.scrollY;
+            const stepSize = 100; // Each step is 100px
+            const maxScrollDistance = window.innerHeight; // Use window height as max scroll
+            const pauseDistance = window.innerHeight; // One screen height pause
+            
+            // Get current and next text
+            const currentText = texts[currentTextIndex];
+            const nextText = texts[(currentTextIndex + 1) % texts.length];
+            
+            // Calculate how many letters need to change
+            const maxLength = Math.max(currentText.length, nextText.length);
+            const lettersToChange = maxLength;
+            
+            // Calculate total scroll needed for this transition (including pause)
+            const totalScrollNeeded = maxScrollDistance + pauseDistance;
+            
+            // Calculate progress within current transition
+            const transitionScroll = scrollY % totalScrollNeeded;
+            
+            // If we're in the pause period, don't change any letters
+            if (transitionScroll < pauseDistance) {
+                currentIndex = 0;
+            } else {
+                // Calculate transition progress (excluding pause)
+                const transitionProgress = Math.min(
+                    (transitionScroll - pauseDistance) / (maxScrollDistance / lettersToChange),
+                    lettersToChange
+                );
+                currentIndex = Math.floor(transitionProgress);
+            }
+            
+            // Calculate which text we should be on based on total scroll
+            const targetTextIndex = Math.floor(scrollY / totalScrollNeeded);
+            
+            // If we've scrolled enough to change texts
+            if (targetTextIndex !== currentTextIndex) {
+                currentTextIndex = targetTextIndex % texts.length;
+                currentIndex = 0;
+                lastChangeY = scrollY;
+                // Re-shuffle indices for the new transition
+                indicesToChange = Array.from({length: maxLength}, (_, i) => i);
+                for (let i = indicesToChange.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [indicesToChange[i], indicesToChange[j]] = [indicesToChange[j], indicesToChange[i]];
+                }
+                // Update URL hash
+                history.replaceState(null, null, `#${currentTextIndex + 1}`);
+            }
+            
+            // Ensure we don't exceed the maximum number of letters
+            currentIndex = Math.min(currentIndex, lettersToChange);
+            
+            // Update the text with mixed colors
+            transitionText.innerHTML = updateText();
+            lastScrollY = scrollY;
+        }
+
+        // Initialize text and indices
+        currentTextIndex = 0;
+        currentIndex = 0;
+        transitionText.innerHTML = texts[0];
+        
+        // Create initial array of indices to change in random order
+        let indicesToChange = Array.from(
+            {length: Math.max(...texts.map(text => text.length))}, 
+            (_, i) => i
+        );
+        // Shuffle the array
+        for (let i = indicesToChange.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indicesToChange[i], indicesToChange[j]] = [indicesToChange[j], indicesToChange[i]];
+        }
+
+        // Handle hash changes (both initial load and manual changes)
+        function handleHash() {
+            const hash = window.location.hash;
+            if (hash) {
+                const match = hash.match(/#(\d+)/);
+                if (match) {
+                    const targetIndex = parseInt(match[1]) - 1;
+                    if (targetIndex >= 0 && targetIndex < texts.length) {
+                        // Calculate scroll position for the target text
+                        // Each text takes 2 viewport heights (pause + transition)
+                        const viewportHeight = window.innerHeight;
+                        const scrollPosition = targetIndex * (viewportHeight * 2);
+                        
+                        // Ensure the body is tall enough for all texts
+                        document.body.style.minHeight = `${texts.length * viewportHeight * 2}px`;
+                        
+                        // Scroll to position
+                        window.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'instant' // Use instant to avoid scroll animation
+                        });
+                        
+                        // Update current text index and reset transition
+                        currentTextIndex = targetIndex;
+                        currentIndex = 0;
+                        
+                        // Re-shuffle indices for the new transition
+                        const maxLength = Math.max(
+                            texts[currentTextIndex].length,
+                            texts[(currentTextIndex + 1) % texts.length].length
+                        );
+                        indicesToChange = Array.from({length: maxLength}, (_, i) => i);
+                        for (let i = indicesToChange.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [indicesToChange[i], indicesToChange[j]] = [indicesToChange[j], indicesToChange[i]];
+                        }
+                        
+                        // Update the text immediately with color
+                        transitionText.innerHTML = `<span style="color: ${colors[currentTextIndex]}">${texts[currentTextIndex]}</span>`;
+                    }
+                }
+            }
+        }
+
+        // Add event listeners
+        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('load', handleHash);
+        window.addEventListener('hashchange', handleHash);
+
+        // Set initial body height
+        document.body.style.minHeight = `${texts.length * window.innerHeight * 2}px`;
+
+        // Visitor counter code
+        const randomCount = Math.floor(Math.random() * 900000) + 100000;
+        let visitorCount = parseInt(localStorage.getItem('visitorCount')) || randomCount;
+        visitorCount++;
+        localStorage.setItem('visitorCount', visitorCount);
+        const formattedCount = visitorCount.toString().padStart(6, '0');
+        const counterElement = document.getElementById('visitorCounter');
+        counterElement.textContent = `Visitors: ${formattedCount}`;
+        counterElement.setAttribute('aria-label', `Visitor counter: ${formattedCount} visitors`);
+    </script>
 </body>
 </html>
