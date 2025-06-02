@@ -265,6 +265,10 @@
                     this.phase = p.random(p.TWO_PI);
                     this.lifetime = p.random(300, 600);
                     this.age = 0;
+                    
+                    // Keep only the bond properties
+                    this.bonds = [];
+                    this.bondCount = p.floor(p.random(1, 4)); // Number of bonds per bubble
                 }
                 
                 update() {
@@ -297,21 +301,25 @@
                         p.cos(time * 0.001 + this.phase) * 0.1
                     );
                     
-                    // Check for collisions with other bubbles
-                    bubbles.forEach(other => {
-                        if (other !== this) {
-                            let d = p.dist(this.x, this.y, other.x, other.y);
-                            let minDist = (this.size + other.size) * 0.5;
-                            
-                            if (d < minDist) {
-                                // Push away from each other
-                                let angle = p.atan2(this.y - other.y, this.x - other.x);
-                                let force = (minDist - d) * 0.1;
-                                this.velocity.x += p.cos(angle) * force;
-                                this.velocity.y += p.sin(angle) * force;
-                            }
-                        }
-                    });
+                    // Update bonds
+                    this.updateBonds();
+                }
+                
+                updateBonds() {
+                    // Find closest bubbles for bonds
+                    let closestBubbles = bubbles
+                        .filter(other => other !== this)
+                        .sort((a, b) => {
+                            let distA = p.dist(this.x, this.y, a.x, a.y);
+                            let distB = p.dist(this.x, this.y, b.x, b.y);
+                            return distA - distB;
+                        })
+                        .slice(0, this.bondCount);
+                    
+                    this.bonds = closestBubbles.map(bubble => ({
+                        x: bubble.x,
+                        y: bubble.y
+                    }));
                 }
                 
                 draw() {
@@ -322,7 +330,14 @@
                     p.push();
                     p.translate(this.x, this.y);
                     
-                    // Draw main bubble
+                    // Draw bonds first (so they appear behind the bubble)
+                    this.bonds.forEach(bond => {
+                        p.stroke(this.hue, 80, 100, this.opacity * 0.3 * fadeOut);
+                        p.strokeWeight(2);
+                        p.line(0, 0, bond.x - this.x, bond.y - this.y);
+                    });
+                    
+                    // Draw main bubble (restored original appearance)
                     p.noStroke();
                     p.fill(this.hue, 80, 100, this.opacity * fadeOut);
                     p.circle(0, 0, this.size);
