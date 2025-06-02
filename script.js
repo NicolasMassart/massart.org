@@ -1,9 +1,9 @@
-// Configuration
-const MAX_BUBBLES = 50;
+// Core configuration
+const MAX_SHAPES = 50;
 const SPAWN_RADIUS = 100;
 const PAUSE_DISTANCE = window.innerHeight;
 
-// Text content and colors
+// Content
 const texts = [
     "A small space for experiments in art and code. Nothing fancy, just bits of my work and thoughts all in one place.",
     "Imagination, fantasy, dream and code.",
@@ -27,7 +27,6 @@ const texts = [
     "Knowledge is a garden that grows through sharing and collaboration."
 ];
 
-// Color palette for text transitions
 const colors = [
     '#00ff00', '#ff0000', '#00ffff', '#ff00ff', '#ffff00',
     '#ff8800', '#88ff00', '#00ff88', '#0088ff', '#8800ff',
@@ -35,19 +34,19 @@ const colors = [
     '#ffff88', '#88ffff', '#ffaa00', '#00ffaa', '#aa00ff'
 ];
 
-// State variables
+// State
 let currentTextIndex = 0;
 let currentIndex = 0;
 let indicesToChange = [];
 
-// Initialize text display
+// DOM elements
 const transitionText = document.getElementById('transition-text');
 const maxLength = Math.max(...texts.map(text => text.length));
 const paddedTexts = texts.map(text => text.padEnd(maxLength, ' '));
 
-// Background animation using p5.js
+// Background animation
 const sketch = (p) => {
-    let bubbles = [];
+    let shapes = [];
     let time = 0;
     let mouseX = 0;
     let mouseY = 0;
@@ -55,7 +54,7 @@ const sketch = (p) => {
     let prevMouseY = 0;
     let isMouseMoving = false;
 
-    class Bubble {
+    class Shape {
         constructor(x, y) {
             this.x = x;
             this.y = y;
@@ -75,34 +74,18 @@ const sketch = (p) => {
             this.vertices = this.calculateVertices(window.scrollY / (window.innerHeight * 2));
             this.rotation = p.random(p.PI * 2);
             this.rotationSpeed = p.random(-0.02, 0.02);
-            this.vertexOffsets = this.generateVertexOffsets();
-            this.angleOffsets = this.generateAngleOffsets();
-            this.fluctuationSpeeds = this.generateFluctuationSpeeds();
-            this.fluctuationPhases = this.generateFluctuationPhases();
-        }
-
-        generateFluctuationSpeeds() {
-            return Array.from({length: this.vertices}, () => p.random(0.5, 2.0));
-        }
-
-        generateFluctuationPhases() {
-            return Array.from({length: this.vertices}, () => p.random(p.TWO_PI));
-        }
-
-        calculateFluctuation(vertexIndex, time) {
-            return p.sin(time * this.fluctuationSpeeds[vertexIndex] + this.fluctuationPhases[vertexIndex]);
+            this.vertexOffsets = Array.from({length: this.vertices}, () => p.random(0.7, 1.3));
+            this.angleOffsets = Array.from({length: this.vertices}, () => p.random(-0.2, 0.2));
+            this.fluctuationSpeeds = Array.from({length: this.vertices}, () => p.random(0.5, 2.0));
+            this.fluctuationPhases = Array.from({length: this.vertices}, () => p.random(p.TWO_PI));
         }
 
         calculateVertices(scrollProgress) {
             return Math.floor(3 + scrollProgress * 12);
         }
 
-        generateVertexOffsets() {
-            return Array.from({length: this.vertices}, () => p.random(0.7, 1.3));
-        }
-
-        generateAngleOffsets() {
-            return Array.from({length: this.vertices}, () => p.random(-0.2, 0.2));
+        calculateFluctuation(vertexIndex, time) {
+            return p.sin(time * this.fluctuationSpeeds[vertexIndex] + this.fluctuationPhases[vertexIndex]);
         }
 
         drawShape() {
@@ -139,8 +122,7 @@ const sketch = (p) => {
             const g = parseInt(textColor.slice(3, 5), 16);
             const b = parseInt(textColor.slice(5, 7), 16);
             const [h, s, l] = this.rgbToHsl(r, g, b);
-            let contrastingHue = (h + 180 + p.random(-30, 30)) % 360;
-            return contrastingHue;
+            return (h + 180 + p.random(-30, 30)) % 360;
         }
 
         rgbToHsl(r, g, b) {
@@ -192,7 +174,7 @@ const sketch = (p) => {
         }
 
         updateBonds() {
-            this.bonds = bubbles
+            this.bonds = shapes
                 .filter(other => other !== this)
                 .sort((a, b) => {
                     let distA = p.dist(this.x, this.y, a.x, a.y);
@@ -200,9 +182,9 @@ const sketch = (p) => {
                     return distA - distB;
                 })
                 .slice(0, this.bondCount)
-                .map(bubble => ({
-                    x: bubble.x,
-                    y: bubble.y
+                .map(shape => ({
+                    x: shape.x,
+                    y: shape.y
                 }));
         }
 
@@ -243,22 +225,22 @@ const sketch = (p) => {
     p.draw = () => {
         p.background(0, 0, 0, 0.1);
         
-        bubbles.forEach(bubble => {
-            bubble.update();
-            bubble.draw();
+        shapes.forEach(shape => {
+            shape.update();
+            shape.draw();
         });
         
-        bubbles = bubbles.filter(bubble => !bubble.isDead());
+        shapes = shapes.filter(shape => !shape.isDead());
         
-        if (bubbles.length < MAX_BUBBLES) {
+        if (shapes.length < MAX_SHAPES) {
             if (isMouseMoving) {
                 const angle = p.random(p.TWO_PI);
                 const distance = p.random(SPAWN_RADIUS);
                 const x = mouseX + p.cos(angle) * distance;
                 const y = mouseY + p.sin(angle) * distance;
-                bubbles.push(new Bubble(x, y));
+                shapes.push(new Shape(x, y));
             } else {
-                bubbles.push(new Bubble(
+                shapes.push(new Shape(
                     p.random(p.width),
                     p.random(p.height)
                 ));
@@ -369,7 +351,7 @@ function handleHash() {
     }
 }
 
-// Initialize text and event listeners
+// Initialize
 currentTextIndex = 0;
 currentIndex = 0;
 transitionText.innerHTML = `<span style="color: ${colors[0]}">${paddedTexts[0]}</span>`;
