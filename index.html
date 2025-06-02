@@ -159,14 +159,67 @@
               padding: 1rem;
           }
       }
+
+      .auto-scroll-controls {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 3;
+          display: flex;
+          gap: 10px;
+          background: rgba(0, 0, 0, 0.7);
+          padding: 10px;
+          border-radius: 4px;
+          font-family: 'Space Mono', monospace;
+      }
+
+      .auto-scroll-controls button {
+          background: none;
+          border: 1px solid var(--primary-color);
+          color: var(--primary-color);
+          padding: 5px 10px;
+          cursor: pointer;
+          font-family: 'Space Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          transition: all 0.2s;
+      }
+
+      .auto-scroll-controls button:hover {
+          background: var(--primary-color);
+          color: black;
+      }
+
+      .auto-scroll-controls button.active {
+          background: var(--primary-color);
+          color: black;
+      }
+
+      .auto-scroll-controls .speed-control {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--primary-color);
+      }
+
+      .auto-scroll-controls .speed-control select {
+          background: none;
+          border: 1px solid var(--primary-color);
+          color: var(--primary-color);
+          padding: 5px;
+          font-family: 'Space Mono', monospace;
+          cursor: pointer;
+      }
+
+      .auto-scroll-controls .speed-control select option {
+          background: black;
+      }
     </style>
 </head>
 <body>
     <div id="background-canvas"></div>
     <header>
         <div class="content" role="main">
-            <h1>massart.org</h1>
-            <h2>Since 1977</h2>
             <div class="text-container">
                 <!-- Scroll indicator elements - commented out but preserved
                 <div class="progress-bar">
